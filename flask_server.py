@@ -30,8 +30,8 @@ def image_test(current_track_info):
 
     colors, pixelcount = extcolors.extract_from_path("test.jpeg")
 
-    print(f'\nred: {colors[0][0][0]}\ngreen: {colors[0][0][1]}\nblue: {colors[0][0][2]}\n')
-    # pprint(colors[0][0])
+    # print(f'\nrgb: {colors[0][0][0]}, {colors[0][0][1]}, {colors[0][0][2]}\n')
+    # pprint(colors)
     return colors[0]
 
 
@@ -52,8 +52,7 @@ def get_current_track(access_token):
         "album_art_height": response_json['item']['album']['images'][0]['height'] 
     }
 
-
-    image_test(current_track_info)
+    current_track_info['rgb'] = image_test(current_track_info)
 
     return current_track_info
 
@@ -61,7 +60,7 @@ def get_current_track(access_token):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return redirect('/login/')
 
 @app.route('/<loginout>/')
 def login(loginout):
@@ -113,7 +112,6 @@ def callback():
         'access_token': res_data.get('access_token'),
         'refresh_token': res_data.get('refresh_token'),
     }
-
 
     return get_current_track(session.get('tokens').get('access_token'))
 
