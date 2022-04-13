@@ -19,9 +19,7 @@ SPOTIFY_AUTH_URL = 'https://accounts.spotify.com/authorize'
 SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token'
 REDIRECT_URI = 'http://localhost:8080/callback/'
 
-
 SPOTIFY_GET_CURRENT_TRACK_URL = 'https://api.spotify.com/v1/me/player/currently-playing'
-
 
 def image_test(current_track_info):
     img = Image.open(requests.get(current_track_info['album_art_link'], stream=True).raw)
@@ -33,7 +31,6 @@ def image_test(current_track_info):
     # print(f'\nrgb: {colors[0][0][0]}, {colors[0][0][1]}, {colors[0][0][2]}\n')
     # pprint(colors)
     return colors[0]
-
 
 def get_current_track(access_token):
     response = requests.get(
@@ -56,35 +53,17 @@ def get_current_track(access_token):
 
     return current_track_info
 
-
-
 @app.route('/')
-def index():
-    return redirect('/login/')
-
-@app.route('/<loginout>/')
-def login(loginout):
-    if loginout == 'logout':
-        payload = {
-            'client_id': CLIENT_ID,
-            'response_type': 'code',
-            'redirect_uri': REDIRECT_URI,
-            'scope': SCOPE,
-            'show_dialog': True,
-        }
-    elif loginout == 'login':
-        payload = {
-            'client_id': CLIENT_ID,
-            'response_type': 'code',
-            'redirect_uri': REDIRECT_URI,
-            'scope': SCOPE,
-        }
-    else:
-        abort(404)
+def home():
+    payload = {
+        'client_id': CLIENT_ID,
+        'response_type': 'code',
+        'redirect_uri': REDIRECT_URI,
+        'scope': SCOPE,
+    }
 
     res = make_response(redirect(f'{SPOTIFY_AUTH_URL}/?{urlencode(payload)}'))
     return res
-
 
 @app.route('/callback/')
 def callback():
@@ -106,7 +85,7 @@ def callback():
             'Failed to receive token: %s',
             res_data.get('error', 'No error information received.'),
         )
-        abort(res.status_code)
+        return redirect('/')
 
     session['tokens'] = {
         'access_token': res_data.get('access_token'),

@@ -1,7 +1,4 @@
-from http.server import BaseHTTPRequestHandler
 from pprint import pprint
-from urllib import response
-from urllib import parse
 import requests
 
 SPOTIFY_GET_CURRENT_TRACK_URL = 'https://api.spotify.com/v1/me/player/currently-playing'
