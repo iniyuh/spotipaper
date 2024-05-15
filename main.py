@@ -88,7 +88,6 @@ def create_background(art_link, filepath):
     shadow_b = int(blue * SHADOW_STRENGTH)
 
     # Use AppKit to retrieve monitor dimensions
-    x = NSScreen.mainScreen().frame()[1]
     monitor_width, monitor_height = int(NSScreen.mainScreen().frame()[1][0]), int(NSScreen.mainScreen().frame()[1][1])
 
     background = Image.new('RGB', (monitor_width, monitor_height), (red, green, blue))
@@ -126,16 +125,6 @@ def set_unique_wallpaper_and_restart_dock(current_track):
     if not os.path.exists(dest_image_path):
         create_background(source_image_url, dest_image_path)
 
-    # AppleScript to set the wallpaper using the destination path
-    # applescript = f"""
-    # /usr/bin/osascript -e 'tell application "System Events"
-    #     repeat with desktopItem in desktops
-    #         set picture of desktopItem to "{dest_image_path}"
-    #     end repeat
-    # end tell'
-    # """
-    # subprocess.run(applescript, shell=True)
-    # subprocess.run(['killall', 'Dock'])
     os.system(
         f'/usr/libexec/PlistBuddy -c "set AllSpacesAndDisplays:Desktop:Content:Choices:0:Files:0:relative file:///{dest_image_path}" ~/Library/Application\ Support/com.apple.wallpaper/Store/Index.plist && \
         killall WallpaperAgent'
@@ -183,19 +172,114 @@ def signal_handler(sig, frame):
     stop_applescript_app()
     sys.exit(0)
 
-if __name__ == "__main__":
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import sys
+from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QMessageBox
+from PyQt6.QtGui import QIcon, QAction
+from PyQt6.QtCore import QThread
+
+
+class WallpaperChangerThread(QThread):
+    def __init__(self):
+        super().__init__()
+        self._running = True
+
+    def stop(self):
+        self._running = False
+
+    def run(self):
+        start_applescript()
+        previous_track = {'Artwork URL': ""}
+        while self._running:
+            current_track = read_current_track()
+            if current_track["Artwork URL"] != previous_track["Artwork URL"] and current_track["Artwork URL"] != "missing value":
+                set_unique_wallpaper_and_restart_dock(current_track)
+                previous_track = current_track
+            time.sleep(5)
+
+class SystemTrayApp(QSystemTrayIcon):
+    def __init__(self, icon, parent=None):
+        super().__init__(icon, parent)
+        self.setToolTip('System Tray Utility')
+        self.menu = QMenu(parent)
+        self.init_menu()
+        self.setContextMenu(self.menu)
+
+    def init_menu(self):
+        start_action = QAction("Start", self)
+        start_action.triggered.connect(self.start_action)
+        self.menu.addAction(start_action)
+
+        stop_action = QAction("Stop", self)
+        stop_action.triggered.connect(self.stop_action)
+        self.menu.addAction(stop_action)
+
+        settings_action = QAction("Settings", self)
+        settings_action.triggered.connect(self.settings_action)
+        self.menu.addAction(settings_action)
+
+        exit_action = QAction("Exit", self)
+        exit_action.triggered.connect(sys.exit)
+        self.menu.addAction(exit_action)
+
+    # def start_action(self):
+    #     QMessageBox.information(None, 'Action', 'Start the application!')
+    #     self.worker = WallpaperChangerThread()
+    #     self.worker.start()
+
+    def start_action(self):
+        # This check is to ensure that the worker thread isn't already running
+        if hasattr(self, 'worker') and self.worker.isRunning():
+            print("The application is already running.")
+        else:
+            self.worker = WallpaperChangerThread()
+            self.worker.start()
+
+    def stop_action(self):
+        QMessageBox.information(None, 'Action', 'Stop the application!')
+        stop_applescript()
+        if hasattr(self, 'worker') and self.worker.isRunning():
+            self.worker.stop()
+            QMessageBox.information(None, 'Action', 'Stopped the application!')
+
+    def settings_action(self):
+        QMessageBox.information(None, 'Settings', 'Adjust settings here!')
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    app.setQuitOnLastWindowClosed(False)  # Keep the app running without a main window
     atexit.register(exit_handler)
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    print("Starting AppleScript application...")
-    start_applescript()
-    
-    previous_track = {'Artwork URL': ""}
-    while True:
-        current_track = read_current_track()
-        print(current_track)
-        if current_track["Artwork URL"] != previous_track["Artwork URL"] and current_track["Artwork URL"] != "missing value":
-            set_unique_wallpaper_and_restart_dock(current_track)
-            previous_track = current_track
-        time.sleep(5)
+    tray_icon = SystemTrayApp(QIcon("icon.png"))
+    tray_icon.show()
+
+    sys.exit(app.exec())
