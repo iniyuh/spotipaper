@@ -3,6 +3,7 @@
 An offline wallpaper application that generates artwork from Spotify album art.
 
 Instructions (macOS):
+
 1. 
 ```
 python3 -m venv venv
